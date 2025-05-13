@@ -1,7 +1,9 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper.js'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+import typefaceFont from 'three/examples/fonts/helvetiker_regular.typeface.json'
 
 /**
  * Base
@@ -19,85 +21,96 @@ const scene = new THREE.Scene()
  * Lights
  */
 // Ambient light
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
+const ambientLight = new THREE.AmbientLight(0xefc3ff, 0.6)
 gui.add(ambientLight, 'intensity').min(0).max(3).step(0.001)
 scene.add(ambientLight)
 
 // Directional light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.1)
+gui.add(directionalLight, 'intensity').min(0).max(3).step(0.001)
 directionalLight.castShadow = true
 directionalLight.shadow.mapSize.width = 1024
 directionalLight.shadow.mapSize.height = 1024
-directionalLight.shadow.camera.near = 1
-directionalLight.shadow.camera.far = 6
-directionalLight.position.set(2, 2, - 1)
-directionalLight.shadow.camera.top = 2
-directionalLight.shadow.camera.right = 2
-directionalLight.shadow.camera.bottom = - 2
-directionalLight.shadow.camera.left = - 2
-directionalLight.shadow.radius = 10
-gui.add(directionalLight, 'intensity').min(0).max(3).step(0.001)
-gui.add(directionalLight.position, 'x').min(- 5).max(5).step(0.001)
-gui.add(directionalLight.position, 'y').min(- 5).max(5).step(0.001)
-gui.add(directionalLight.position, 'z').min(- 5).max(5).step(0.001)
+directionalLight.position.set(2, 2, -1)
 scene.add(directionalLight)
 
-// Spot light
-const spotLight = new THREE.SpotLight(0xffffff, 2.4, 10, Math.PI * 0.3)
-spotLight.castShadow = true
-spotLight.shadow.mapSize.width = 1024
-spotLight.shadow.mapSize.height = 1024
-spotLight.shadow.camera.near = 1
-spotLight.shadow.camera.far = 6
-spotLight.position.set(0, 2, 2)
-scene.add(spotLight)
-scene.add(spotLight.target)
+const hemisphereLight = new THREE.HemisphereLight(0xff0000, 0xf4cccc, 0.9)
+gui.add(hemisphereLight, 'intensity').min(0).max(3).step(0.001)
+scene.add(hemisphereLight)
 
-const spotLightCameraHelper = new THREE.CameraHelper(spotLight.shadow.camera)
-spotLightCameraHelper.visible = false
-scene.add(spotLightCameraHelper)
-
-// Point light
-const pointLight = new THREE.PointLight(0xffffff, 2.7)
-pointLight.castShadow = true
-pointLight.shadow.mapSize.width = 1024
-pointLight.shadow.mapSize.height = 1024
-pointLight.shadow.camera.near = 0.1
-pointLight.shadow.camera.far = 5
-pointLight.position.set(- 1, 1, 0)
+const pointLight = new THREE.PointLight(0xff86cf, 1.5, 0, 2)
+gui.add(pointLight, 'intensity').min(0).max(3).step(0.001)
+pointLight.position.set(1, -0.5, 1)
 scene.add(pointLight)
 
-const pointLightCameraHelper = new THREE.CameraHelper(pointLight.shadow.camera)
-pointLightCameraHelper.visible = false
-scene.add(pointLightCameraHelper)
-
 /**
- * Textures
+ * Gradient Background
  */
 const textureLoader = new THREE.TextureLoader()
+const gradientTexture = textureLoader.load('/textures/gradients/gradient2.png')
+gradientTexture.colorSpace = THREE.SRGBColorSpace
+scene.background = gradientTexture
 
 /**
  * Materials
  */
-const material = new THREE.MeshStandardMaterial()
-material.metalness = 0.73,
-material.roughness = 0.44,
-material.flatShading = true
-gui.add(material, 'metalness').min(0).max(1).step(0.001)
-gui.add(material, 'roughness').min(0).max(1).step(0.001)
+const reflectiveMaterial = new THREE.MeshStandardMaterial({
+    metalness: 0.7,
+    roughness: 0.5,
+    color: 0xC09BD9,
+    envMap: gradientTexture
+})
+reflectiveMaterial.flatShading = true
+gui.add(reflectiveMaterial, 'metalness').min(0).max(1).step(0.001)
+gui.add(reflectiveMaterial, 'roughness').min(0).max(1).step(0.001)
+gui.addColor(reflectiveMaterial, 'color').min(0).max(1).step(0.001)
+
 /**
- * Objects
+ * Disco Ball
  */
-
-
-// Boule Disco
-
-const bouleDisco = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 16, 16),
-    material
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.7, 16, 16),
+    reflectiveMaterial
 )
+sphere.castShadow = true
+scene.add(sphere)
 
-scene.add(bouleDisco)
+/**
+ * 3D Text
+ */
+const fontLoader = new FontLoader()
+fontLoader.load(
+    '/fonts/Funkorama_Regular.json',
+    (font) => {
+        const textGeometry = new TextGeometry(
+            'Hello',
+            {
+                font: font,
+                height: 0.01,
+                size: 0.5,
+                depth: 0.2,
+                curveSegments: 116,
+                bevelEnabled: true,
+                bevelThickness: 0.05,
+                bevelSize: 0.03,
+                bevelOffset: 0,
+                bevelSegments: 10
+            }
+        )
+        textGeometry.center();
+        const matcapTexture = textureLoader.load('/textures/matcaps/8.png');
+        matcapTexture.colorSpace = THREE.SRGBColorSpace;
+        
+        const textMaterial = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
+        const text = new THREE.Mesh(textGeometry, textMaterial);
+        scene.add(text);
+        text.position.set(0, 1, -1);
+    },
+    undefined,
+    (error) => {
+        console.error('Error loading font:', error);
+    }
+)
 
 /**
  * Sizes
@@ -126,7 +139,8 @@ window.addEventListener('resize', () =>
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+const camera = new THREE.PerspectiveCamera(50, sizes.width / sizes.height, 0.1, 100);
+
 camera.position.x = 1
 camera.position.y = 1
 camera.position.z = 2
@@ -155,8 +169,7 @@ const tick = () =>
     const elapsedTime = clock.getElapsedTime()
 
     // Update objects
-    bouleDisco.rotation.y = 0.2 * elapsedTime
-    //bouleDisco.rotation.x = 0.15 * elapsedTime
+    sphere.rotation.y = 0.2 * elapsedTime
 
     // Update controls
     controls.update()
