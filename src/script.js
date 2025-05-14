@@ -112,6 +112,25 @@ fontLoader.load(
     }
 )
 
+// Create multiple PointLights to simulate disco ball reflections
+const discoLights = [];
+const lightColors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+const lightIntensity = 1.5;
+
+lightColors.forEach((color, index) => {
+    const light = new THREE.PointLight(color, lightIntensity, 5);
+    light.position.set(
+        Math.cos(index) * 1.5,
+        Math.sin(index) * 1.5,
+        0
+    );
+    scene.add(light);
+    discoLights.push(light);
+});
+
+const radius = 1.5;
+const speed = 0.8;
+
 /**
  * Sizes
  */
@@ -168,6 +187,11 @@ const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
 
+    discoLights.forEach((light, index) => {
+        light.position.x = radius * Math.cos(elapsedTime * speed + index);
+        light.position.y = radius * Math.sin(elapsedTime * speed + index);
+    });
+    
     // Update objects
     sphere.rotation.y = 0.2 * elapsedTime
 
